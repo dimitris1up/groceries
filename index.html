@@ -37,7 +37,9 @@ h1{margin:0;font-size:26px;font-weight:700}
 .tag{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
 .lbl{padding:10px 20px 6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
 .chips{display:flex;flex-wrap:wrap;gap:10px;padding:0 20px 8px}
-.chip{min-height:44px;padding:0 16px;border:1px solid var(--bd);border-radius:999px;background:var(--card)}
+.chip{display:inline-flex;align-items:center;min-height:44px;padding:0 0 0 16px;border:1px solid var(--bd);border-radius:999px;background:var(--card)}
+.cb{border:0;background:none;min-height:44px;padding:0}
+.cx{border:0;background:none;width:40px;min-height:44px;color:var(--mut);font-size:13px}
 .bar{display:flex;gap:10px;padding:12px 16px 14px}
 input{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--bd);border-radius:12px;height:48px;padding:0 14px;width:100%;min-width:0}
 input:focus{outline:0;border-color:var(--acc)}
@@ -184,9 +186,11 @@ const SheetSync = (function () {
 </script>
 <script>
 const LS = 'groceries_state';
-const CATS = ['Produce', 'Dairy', 'Meat & fish', 'Bakery', 'Pantry', 'Frozen', 'Household', 'Other'];
+const CATS = ['Fruit & veg', 'Dairy', 'Meat & fish', 'Bakery', 'Pantry', 'Frozen', 'Household', 'Other'];
 let state = { items: [], catalog: [], cats: CATS.slice() };
 try { Object.assign(state, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+const fixCats = a => a.map(c => c === 'Produce' ? 'Fruit & veg' : c);
+state.cats = fixCats(state.cats);
 let ui = { basket: false, sheet: null, pending: null, edit: null, err: '' };
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -223,16 +227,17 @@ function suggest() {
     const m = state.catalog.filter(c => norm(c.name).includes(q)).sort((a, b) => (norm(b.name).startsWith(q) - norm(a.name).startsWith(q)) || b.n - a.n).slice(0, 5);
     if (m.length) h = '<div class="lbl">Matches</div>' + m.map(c => '<button class="sg" data-a="sug" data-id="' + esc(c.id) + '"><span style="flex:1">' + esc(c.name) + '</span><span class="tag">' + esc(c.cat) + '</span></button>').join('');
   } else if (focus) {
-    const s = state.catalog.filter(c => !onList.has(c.id)).sort((a, b) => b.n - a.n).slice(0, 8);
-    if (s.length) h = '<div class="lbl">Staples</div><div class="chips">' + s.map(c => '<button class="chip" data-a="sug" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>').join('') + '</div>';
+    const s = state.catalog.filter(c => c.n >= 2 && !onList.has(c.id)).sort((a, b) => b.n - a.n).slice(0, 8);
+    if (s.length) h = '<div class="lbl">Staples</div><div class="chips">' + s.map(c => '<span class="chip"><button class="cb" data-a="sug" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button><button class="cx" data-a="unstaple" data-id="' + esc(c.id) + '" aria-label="Remove ' + esc(c.name) + ' from staples">✕</button></span>').join('') + '</div>';
   }
   $('sugg').innerHTML = h;
 }
 
 function addItem(name, qty, cat) {
   const k = norm(name), ex = state.catalog.find(c => c.id === k);
-  if (ex) { ex.n++; ex.cat = cat; ex.name = name; } else state.catalog.push({ id: k, name, cat, n: 1 });
-  if (!state.items.some(i => !i.done && norm(i.name) === k)) state.items.push({ id: uid(), name, qty: qty || '', cat, done: false, order: Date.now() });
+  const land = !state.items.some(i => !i.done && norm(i.name) === k);
+  if (ex) { if (land) ex.n++; ex.cat = cat; ex.name = name; } else state.catalog.push({ id: k, name, cat, n: land ? 1 : 0 });
+  if (land) state.items.push({ id: uid(), name, qty: qty || '', cat, done: false, order: Date.now() });
   $('inp').value = '';
   save();
 }
@@ -275,10 +280,11 @@ document.addEventListener('click', async e => {
   else if (a === 'bk') { ui.basket = !ui.basket; render(); }
   else if (a === 'clear') { state.items = state.items.filter(x => !x.done); save(); }
   else if (a === 'sug') { const c = state.catalog.find(x => x.id === id); addItem(c.name, '', c.cat); }
+  else if (a === 'unstaple') { state.catalog.find(x => x.id === id).n = 0; save(); }
   else if (a === 'pick') { const p = ui.pending; closeSheet(); addItem(p.name, p.qty, state.cats[i]); }
   else if (a === 'edit') { const it = state.items.find(x => x.id === id); ui.edit = { id, cat: it.cat }; openSheet('edit'); }
   else if (a === 'ecat') { ui.edit.cat = state.cats[i]; document.querySelectorAll('[data-a=ecat]').forEach(x => x.classList.toggle('sel', +x.dataset.i === i)); }
-  else if (a === 'esave') { const it = state.items.find(x => x.id === ui.edit.id), n = $('ename').value.trim(); if (!n) return; it.name = n; it.qty = $('eqty').value.trim(); it.cat = ui.edit.cat; closeSheet(); save(); }
+  else if (a === 'esave') { const it = state.items.find(x => x.id === ui.edit.id), n = $('ename').value.trim(); if (!n) return; it.name = n; it.qty = $('eqty').value.trim(); it.cat = ui.edit.cat; const ce = state.catalog.find(c => c.id === norm(n)); if (ce) { ce.cat = it.cat; ce.name = n; } else state.catalog.push({ id: norm(n), name: n, cat: it.cat, n: 1 }); closeSheet(); save(); }
   else if (a === 'edel') { state.items = state.items.filter(x => x.id !== ui.edit.id); closeSheet(); save(); }
   else if (a === 'close') closeSheet();
   else if (a === 'sync') openSheet('sync');
@@ -325,7 +331,7 @@ SheetSync.init('groceries', {
   fromRecords(r) {
     state.items = Object.values(r.items || {}).sort((a, b) => a.order - b.order);
     state.catalog = Object.values(r.catalog || {});
-    if (r.settings && r.settings.main && r.settings.main.catOrder) state.cats = r.settings.main.catOrder;
+    if (r.settings && r.settings.main && r.settings.main.catOrder) state.cats = fixCats(r.settings.main.catOrder);
     persist(); render();
   },
   onStatus(s) {
