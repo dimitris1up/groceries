@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2F6B4F">
+<title>Groceries</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#F7F6F2;--card:#fff;--ink:#1F2421;--mut:#5C625D;--line:#E3E1D9;--acc:#2F6B4F;--onacc:#fff;--bd:#C9C6BB;--chk:#7C837E;--bad:#B3261E}
+@media(prefers-color-scheme:dark){:root{--bg:#161815;--card:#1F221F;--ink:#ECEBE5;--mut:#A3A9A3;--line:#2E322E;--acc:#5FB08A;--onacc:#0F1A14;--bd:#454A45;--chk:#8A908B;--bad:#F2877F}}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;max-width:640px;margin:0 auto;min-height:100dvh;background:var(--bg);color:var(--ink);font:16px Inter,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 220px}
+button{font:inherit;color:inherit;cursor:pointer}
+header{padding:28px 20px 12px;display:flex;justify-content:space-between;align-items:flex-start}
+h1{margin:0;font-size:26px;font-weight:700}
+.sub{margin:4px 0 0;font-size:13px;color:var(--mut)}
+.hr{display:flex;align-items:center;gap:4px}
+.sync{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);background:none;border:0;min-height:44px;padding:0 8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#8A908B}
+.dot.synced{background:#2E8B57}.dot.pending,.dot.syncing{background:#D99A1E}.dot.error{background:var(--bad)}
+.cat{padding:14px 20px 6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);display:flex;justify-content:space-between}
+.row{display:flex;background:var(--card);border-bottom:1px solid var(--line)}
+.row .main{flex:1;display:flex;align-items:center;gap:14px;min-height:48px;padding:0 0 0 20px;border:0;background:none;text-align:left}
+.ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--chk);flex:none;display:grid;place-items:center}
+.nm{flex:1}.q{font-size:14px;color:var(--mut)}
+.row.done .nm{text-decoration:line-through;color:var(--mut)}
+.row.done .ck{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.ed{width:48px;border:0;background:none;color:var(--mut);display:grid;place-items:center}
+.bk{padding:12px 20px;font-size:14px;color:var(--mut);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:12px}
+.link{border:0;background:none;color:var(--acc);font-weight:600;font-size:14px;min-height:44px}
+.empty{padding:40px 20px;text-align:center;color:var(--mut)}
+#dock{position:fixed;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;background:var(--bg);border-top:1px solid var(--line);padding:0 0 env(safe-area-inset-bottom)}
+#sugg:not(:empty){padding:4px 0 0}
+.sg{display:flex;align-items:center;width:100%;min-height:48px;padding:0 20px;border:0;border-bottom:1px solid var(--line);background:var(--card);text-align:left}
+.tag{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.lbl{padding:10px 20px 6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;padding:0 20px 8px}
+.chip{min-height:44px;padding:0 16px;border:1px solid var(--bd);border-radius:999px;background:var(--card)}
+.bar{display:flex;gap:10px;padding:12px 16px 14px}
+input{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--bd);border-radius:12px;height:48px;padding:0 14px;width:100%;min-width:0}
+input:focus{outline:0;border-color:var(--acc)}
+.btn{height:48px;padding:0 22px;border:0;border-radius:12px;background:var(--acc);color:var(--onacc);font-weight:600}
+.btn.alt{background:var(--card);color:var(--ink);border:1px solid var(--bd)}
+.btn.del{background:var(--card);color:var(--bad);border:1px solid var(--bd)}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:5}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2);display:none;z-index:6;max-height:90dvh;overflow:auto}
+#sheet h2{margin:0;font-size:18px}
+#sheet p{margin:4px 0 14px;font-size:13px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.grid .btn{padding:0 8px}
+.grid .btn:not(.sel){background:var(--card);color:var(--ink);border:1px solid var(--bd);font-weight:500}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:13px;color:var(--mut)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.err{color:var(--bad);font-size:13px;margin-bottom:10px}
+.mv{display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--line)}
+.mv span{flex:1}.mv button{width:44px;height:44px;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+</style>
+</head>
+<body>
+<header>
+<div><h1>Groceries</h1><p class="sub" id="sub"></p></div>
+<div class="hr"><button class="sync" data-a="sync" aria-label="Sync settings"><span class="dot" id="dot"></span><span id="stxt">Local only</span></button></div>
+</header>
+<main id="list"></main>
+<div id="dock"><div id="sugg"></div>
+<div class="bar"><input id="inp" placeholder="Add item…" aria-label="Add item" autocomplete="off" enterkeyhint="done"><button class="btn" data-a="add">Add</button></div></div>
+<div id="scrim" data-a="close"></div><div id="sheet"></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+<script>
+/* ===== SheetSync v1 – syncs this tool with a Google Sheet through the Apps Script backend =====
+   The tool keeps working exactly as before (its own state + localStorage). SheetSync only needs:
+     toRecords()        -> {collection: {id: plainObject}}   (current state, as records)
+     fromRecords(recs)  -> rebuild state from that shape, save it locally, re-render (do NOT call changed())
+     onStatus(s)        -> optional: show s.text in the tool's own style (s.state: local|pending|syncing|synced|error)
+   Call SheetSync.changed() after every local save. Settings UI calls connect()/disconnect()/syncNow().
+   ======================================================================================== */
+const SheetSync = (function () {
+  let K = 'sheetsync', S = null, H = null, timer = null, busy = false, again = false, applying = false;
+  const blank = () => ({ url: '', token: '', since: 0, known: {}, sheetUrl: '', at: 0, err: '' });
+  const save = () => { try { localStorage.setItem(K, JSON.stringify(S)); } catch (e) {} };
+  const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']'
+    : (v && typeof v === 'object') ? '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}'
+    : JSON.stringify(v === undefined ? null : v);
+  const hash = v => { const s = canon(v); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + '.' + s.length; };
+  const key = (c, id) => c + '\u0001' + id;
+  const on = () => !!(S.url && S.token);
+
+  function snapshot() {
+    const recs = H.toRecords() || {}, snap = {};
+    for (const c in recs) for (const id in recs[c]) snap[key(c, id)] = { c, id: String(id), data: recs[c][id], h: hash(recs[c][id]) };
+    return snap;
+  }
+  function pendingList(snap) {
+    const out = [], now = Math.floor(Date.now() / 1000);
+    for (const k in snap) { const kn = S.known[k]; if (!kn || kn.del || kn.h !== snap[k].h) out.push({ c: snap[k].c, id: snap[k].id, u: now, data: snap[k].data, _h: snap[k].h }); }
+    for (const k in S.known) if (!S.known[k].del && !snap[k]) { const [c, id] = k.split('\u0001'); out.push({ c, id, u: now, del: 1 }); }
+    return out;
+  }
+  function status(st) {
+    const n = S && on() && !busy ? pendingList(snapshot()).length : 0;
+    const s = !on() ? { state: 'local', text: 'local only' }
+      : st === 'syncing' || busy ? { state: 'syncing', text: 'syncing…' }
+      : S.err ? { state: 'error', text: (navigator.onLine ? 'sync error: ' : 'offline: ') + S.err }
+      : n ? { state: 'pending', text: n + ' change' + (n > 1 ? 's' : '') + ' to sync' }
+      : { state: 'synced', text: 'synced' };
+    if (H && H.onStatus) H.onStatus(s);
+    return s;
+  }
+  async function call(body) {
+    const r = await fetch(S.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token: S.token }, body)) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    let j; try { j = await r.json(); } catch (e) { throw new Error('the link did not answer like the sync script (check the link and that access = Anyone)'); }
+    if (j.error) throw new Error(j.error);
+    return j;
+  }
+  /* one request: send what changed here, receive what changed elsewhere */
+  async function syncNow(opts) {
+    opts = opts || {};
+    if (!on()) return status();
+    if (busy) { again = true; return; }
+    busy = true; again = false; clearTimeout(timer); status('syncing');
+    try {
+      const snap = snapshot();
+      const changes = opts.replace ? [] : pendingList(snap);
+      const j = await call({ action: 'sync', since: opts.replace ? 0 : S.since, changes: changes.map(x => { const y = Object.assign({}, x); delete y._h; return y; }) });
+      if (opts.replace) S.known = {};
+      for (const x of changes) S.known[key(x.c, x.id)] = x.del ? { del: 1, u: x.u } : { h: x._h, u: x.u };
+      const rows = j.rows || [];
+      if (rows.length || opts.replace) {
+        const now = snapshot(), recs = opts.replace ? {} : (H.toRecords() || {});
+        let touched = !!opts.replace;
+        for (const r of rows) {
+          const k = key(r.c, r.id);
+          if (!opts.replace && (now[k] && now[k].h) !== (snap[k] && snap[k].h)) continue;  // edited here during the request: keep ours
+          if (r.del) { if (recs[r.c] && r.id in recs[r.c]) { delete recs[r.c][r.id]; touched = true; } S.known[k] = { del: 1, u: r.u }; continue; }
+          const h = hash(r.data);
+          if (!(now[k] && now[k].h === h) || opts.replace) { (recs[r.c] = recs[r.c] || {})[r.id] = r.data; touched = true; }
+          S.known[k] = { h, u: r.u };
+        }
+        if (touched) { applying = true; try { H.fromRecords(recs); } finally { applying = false; } }
+      }
+      S.since = j.t; S.sheetUrl = j.url || S.sheetUrl; S.at = Date.now(); S.err = '';
+      save(); busy = false; status();
+      if (again || pendingList(snapshot()).length) schedule(1500);
+      return true;
+    } catch (e) {
+      busy = false; S.err = e.message; save(); status();
+      if (opts.manual) throw e;
+      return false;
+    }
+  }
+  function schedule(ms) { if (!on()) return status(); clearTimeout(timer); timer = setTimeout(() => syncNow(), ms == null ? 3000 : ms); status(); }
+
+  return {
+    init(id, hooks) {
+      K = 'sheetsync_' + id; H = hooks;
+      try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(K) || '{}')); } catch (e) { S = blank(); }
+      document.addEventListener('visibilitychange', () => {
+        if (!on()) return;
+        if (document.visibilityState === 'hidden' && pendingList(snapshot()).length) syncNow();
+        if (document.visibilityState === 'visible' && Date.now() - (S.at || 0) > 30000) syncNow();
+      });
+      window.addEventListener('online', () => { if (on()) syncNow(); });
+      if (on()) syncNow(); else status();
+    },
+    changed() { if (!applying) schedule(); },
+    syncNow() { return syncNow({ manual: true }); },
+    /* first connect on a device: mode 'sheet' = take the Sheet's data (replaces this device's copy),
+       'merge' = send this device's data up and add what the Sheet has. Returns the Sheet's record count. */
+    async ping(url, token) { const s0 = S; S = Object.assign(blank(), { url, token }); try { return await call({ action: 'ping' }); } finally { S = s0; } },
+    async connect(url, token, mode) {
+      const changed = url !== S.url;
+      S.url = url; S.token = token; S.err = '';
+      if (changed || !S.since) { S.since = 0; S.known = {}; }
+      save();
+      return syncNow({ manual: true, replace: mode === 'sheet' });
+    },
+    disconnect() { clearTimeout(timer); S.url = ''; save(); status(); },
+    info() { return { url: S.url, token: S.token, sheetUrl: S.sheetUrl, lastSync: S.at, error: S.err, connected: on(), status: status() }; }
+  };
+})();
+</script>
+<script>
+const LS = 'groceries_state';
+const CATS = ['Produce', 'Dairy', 'Meat & fish', 'Bakery', 'Pantry', 'Frozen', 'Household', 'Other'];
+let state = { items: [], catalog: [], cats: CATS.slice() };
+try { Object.assign(state, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+let ui = { basket: false, sheet: null, pending: null, edit: null, err: '' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ς/g, 'σ').trim();
+const uid = () => Math.random().toString(36).slice(2, 9);
+const CHECK = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>';
+const PEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+
+function persist() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+function save() { persist(); render(); SheetSync.changed(); }
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+function render() {
+  const todo = state.items.filter(i => !i.done), done = state.items.filter(i => i.done);
+  $('sub').textContent = todo.length + ' to get · ' + done.length + ' in basket';
+  const row = i => '<div class="row' + (i.done ? ' done' : '') + '"><button class="main" data-a="tog" data-id="' + i.id + '"><span class="ck">' + (i.done ? CHECK : '') + '</span><span class="nm">' + esc(i.name) + '</span><span class="q">' + esc(i.qty || '') + '</span></button><button class="ed" data-a="edit" data-id="' + i.id + '" aria-label="Edit ' + esc(i.name) + '">' + PEN + '</button></div>';
+  const order = state.cats.concat([...new Set(todo.map(i => i.cat))].filter(c => !state.cats.includes(c)));
+  let h = '';
+  order.forEach(c => {
+    const g = todo.filter(i => i.cat === c).sort((a, b) => a.order - b.order);
+    if (g.length) h += '<div class="cat"><span>' + esc(c) + '</span><span>' + g.length + '</span></div>' + g.map(row).join('');
+  });
+  if (!todo.length) h = '<div class="empty">Nothing on the list. Add something below.</div>';
+  if (done.length) h += '<div class="bk"><button class="link" data-a="bk" style="color:var(--mut);font-weight:500;padding:0">In basket (' + done.length + ') ' + (ui.basket ? '▾' : '▸') + '</button><button class="link" data-a="clear">Clear done</button></div>' + (ui.basket ? done.map(row).join('') : '');
+  $('list').innerHTML = h;
+  suggest();
+}
+
+function suggest() {
+  const q = norm($('inp').value), focus = document.activeElement === $('inp');
+  const onList = new Set(state.items.filter(i => !i.done).map(i => norm(i.name)));
+  let h = '';
+  if (q) {
+    const m = state.catalog.filter(c => norm(c.name).includes(q)).sort((a, b) => (norm(b.name).startsWith(q) - norm(a.name).startsWith(q)) || b.n - a.n).slice(0, 5);
+    if (m.length) h = '<div class="lbl">Matches</div>' + m.map(c => '<button class="sg" data-a="sug" data-id="' + esc(c.id) + '"><span style="flex:1">' + esc(c.name) + '</span><span class="tag">' + esc(c.cat) + '</span></button>').join('');
+  } else if (focus) {
+    const s = state.catalog.filter(c => !onList.has(c.id)).sort((a, b) => b.n - a.n).slice(0, 8);
+    if (s.length) h = '<div class="lbl">Staples</div><div class="chips">' + s.map(c => '<button class="chip" data-a="sug" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>').join('') + '</div>';
+  }
+  $('sugg').innerHTML = h;
+}
+
+function addItem(name, qty, cat) {
+  const k = norm(name), ex = state.catalog.find(c => c.id === k);
+  if (ex) { ex.n++; ex.cat = cat; ex.name = name; } else state.catalog.push({ id: k, name, cat, n: 1 });
+  if (!state.items.some(i => !i.done && norm(i.name) === k)) state.items.push({ id: uid(), name, qty: qty || '', cat, done: false, order: Date.now() });
+  $('inp').value = '';
+  save();
+}
+function submit() {
+  const t = $('inp').value.trim();
+  if (!t) return;
+  const m = t.match(/^(.+?)\s+(\d+(?:[.,]\d+)?(?:\s?(?:kg|g|l|ml|τεμ))?)$/i);
+  const name = m ? m[1].trim() : t, qty = m ? m[2] : '';
+  const known = state.catalog.find(c => c.id === norm(name));
+  if (known) return addItem(name, qty, known.cat);
+  ui.pending = { name, qty }; openSheet('aisle');
+}
+
+function openSheet(kind) {
+  ui.sheet = kind; ui.err = '';
+  const gridBtns = (sel, act) => '<div class="grid">' + state.cats.map((c, i) => '<button class="btn' + (c === sel ? ' sel' : '') + '" data-a="' + act + '" data-i="' + i + '">' + esc(c) + '</button>').join('') + '</div>';
+  let h = '';
+  if (kind === 'aisle') {
+    h = '<h2>Which aisle is ' + esc(ui.pending.name) + '?</h2><p>Asked once, remembered next time.</p>' + gridBtns('', 'pick') + '<button class="btn alt" data-a="close">Cancel</button>';
+  } else if (kind === 'edit') {
+    const it = state.items.find(i => i.id === ui.edit.id);
+    h = '<h2>Edit item</h2><p> </p><label class="fld">Name<input id="ename" value="' + esc(it.name) + '"></label><label class="fld">Quantity<input id="eqty" value="' + esc(it.qty || '') + '"></label>' + gridBtns(ui.edit.cat, 'ecat') + '<div class="acts"><button class="btn" data-a="esave">Save</button><button class="btn del" data-a="edel">Delete</button><button class="btn alt" data-a="close">Cancel</button></div>';
+  } else if (kind === 'aisles') {
+    h = '<h2>Aisle order</h2><p>Order the list follows while you walk the store.</p>' + state.cats.map((c, i) => '<div class="mv"><span>' + esc(c) + '</span><button data-a="mv" data-i="' + i + '" data-d="-1" aria-label="Move up">↑</button><button data-a="mv" data-i="' + i + '" data-d="1" aria-label="Move down">↓</button></div>').join('') + '<div class="acts" style="margin-top:14px"><button class="btn alt" data-a="sync">Back</button></div>';
+  } else if (kind === 'sync') {
+    const n = SheetSync.info();
+    h = '<h2>Sync</h2><p id="sstat">' + esc(n.status.text) + '</p><label class="fld">Script link (Web app URL, ends /exec)<input id="surl" value="' + esc(n.url || '') + '" autocomplete="off"></label><label class="fld">Password<input id="spw" type="password" value="' + esc(n.token || '') + '" autocomplete="off"></label><div class="err" id="serr"></div><div class="acts"><button class="btn" data-a="connect">Connect</button><button class="btn alt" data-a="snow">Sync now</button><button class="btn alt" data-a="disc">Disconnect</button></div><div class="acts">' + (n.sheetUrl ? '<a class="link" href="' + esc(n.sheetUrl) + '" target="_blank" rel="noopener" style="display:flex;align-items:center">Open my Google Sheet</a>' : '') + '<button class="btn alt" data-a="aisles">Aisle order</button></div><div class="acts"><button class="btn alt" data-a="dl">Download backup</button><button class="btn alt" data-a="imp">Import backup (JSON)</button><button class="btn alt" data-a="close">Close</button></div>';
+  }
+  $('sheet').innerHTML = h; $('sheet').style.display = 'block'; $('scrim').style.display = 'block';
+}
+function closeSheet() { ui.sheet = null; $('sheet').style.display = 'none'; $('scrim').style.display = 'none'; }
+const serr = m => { const e = $('serr'); if (e) e.textContent = m; };
+
+document.addEventListener('pointerdown', e => { if (e.target.closest('#sugg')) e.preventDefault(); });
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, id = b.dataset.id, i = +b.dataset.i;
+  if (a === 'add') submit();
+  else if (a === 'tog') { const it = state.items.find(x => x.id === id); it.done = !it.done; save(); }
+  else if (a === 'bk') { ui.basket = !ui.basket; render(); }
+  else if (a === 'clear') { state.items = state.items.filter(x => !x.done); save(); }
+  else if (a === 'sug') { const c = state.catalog.find(x => x.id === id); addItem(c.name, '', c.cat); }
+  else if (a === 'pick') { const p = ui.pending; closeSheet(); addItem(p.name, p.qty, state.cats[i]); }
+  else if (a === 'edit') { const it = state.items.find(x => x.id === id); ui.edit = { id, cat: it.cat }; openSheet('edit'); }
+  else if (a === 'ecat') { ui.edit.cat = state.cats[i]; document.querySelectorAll('[data-a=ecat]').forEach(x => x.classList.toggle('sel', +x.dataset.i === i)); }
+  else if (a === 'esave') { const it = state.items.find(x => x.id === ui.edit.id), n = $('ename').value.trim(); if (!n) return; it.name = n; it.qty = $('eqty').value.trim(); it.cat = ui.edit.cat; closeSheet(); save(); }
+  else if (a === 'edel') { state.items = state.items.filter(x => x.id !== ui.edit.id); closeSheet(); save(); }
+  else if (a === 'close') closeSheet();
+  else if (a === 'sync') openSheet('sync');
+  else if (a === 'aisles') openSheet('aisles');
+  else if (a === 'mv') { const j = i + +b.dataset.d; if (j < 0 || j >= state.cats.length) return; [state.cats[i], state.cats[j]] = [state.cats[j], state.cats[i]]; save(); openSheet('aisles'); }
+  else if (a === 'connect') {
+    const url = $('surl').value.trim(), pw = $('spw').value;
+    try {
+      const p = await SheetSync.ping(url, pw);
+      const has = state.items.length || state.catalog.length;
+      let mode = 'merge';
+      if (p.count > 0) mode = has ? (confirm("The Sheet already has data. OK = use the Sheet's data on this device (recommended), Cancel = merge this device's data into the Sheet") ? 'sheet' : 'merge') : 'sheet';
+      await SheetSync.connect(url, pw, mode); openSheet('sync');
+    } catch (err) { serr(err.message); }
+  }
+  else if (a === 'snow') SheetSync.syncNow().catch(err => serr(err.message));
+  else if (a === 'disc') { SheetSync.disconnect(); openSheet('sync'); }
+  else if (a === 'dl') {
+    const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' }));
+    l.download = 'groceries-backup-' + new Date().toISOString().slice(0, 10) + '.json'; l.click();
+  }
+  else if (a === 'imp') $('file').click();
+});
+$('file').addEventListener('change', async e => {
+  try {
+    const d = JSON.parse(await e.target.files[0].text());
+    state.items = d.items || []; state.catalog = d.catalog || []; state.cats = d.cats || CATS.slice();
+    save();
+  } catch (err) { serr('could not read that file'); }
+  e.target.value = '';
+});
+$('inp').addEventListener('input', suggest);
+$('inp').addEventListener('focus', suggest);
+$('inp').addEventListener('blur', () => setTimeout(suggest, 150));
+$('inp').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+
+SheetSync.init('groceries', {
+  toRecords() {
+    const it = {}, ca = {};
+    state.items.forEach(x => it[x.id] = x);
+    state.catalog.forEach(x => ca[x.id] = x);
+    return { items: it, catalog: ca, settings: { main: { catOrder: state.cats } } };
+  },
+  fromRecords(r) {
+    state.items = Object.values(r.items || {}).sort((a, b) => a.order - b.order);
+    state.catalog = Object.values(r.catalog || {});
+    if (r.settings && r.settings.main && r.settings.main.catOrder) state.cats = r.settings.main.catOrder;
+    persist(); render();
+  },
+  onStatus(s) {
+    $('dot').className = 'dot ' + s.state; $('stxt').textContent = cap(s.state === 'pending' || s.state === 'error' ? s.text : s.state === 'local' ? 'local only' : s.text);
+    const e = $('sstat'); if (e) e.textContent = s.text;
+  }
+});
+render();
+</script>
+</body>
+</html>
